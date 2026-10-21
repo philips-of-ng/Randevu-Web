@@ -1,6 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { apiClient } from "../lib/api-client";
-import { LoginInput, RegisterInput } from "@randevu/validation";
+
+export interface LoginInput {
+  email: string;
+  password?: string;
+  [key: string]: unknown;
+}
+
+export interface RegisterInput {
+  email: string;
+  password?: string;
+  fullName?: string;
+  [key: string]: unknown;
+}
 
 export interface User {
   id: string;
