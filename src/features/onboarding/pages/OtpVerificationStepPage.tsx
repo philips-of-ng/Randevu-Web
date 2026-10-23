@@ -2,13 +2,29 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const OtpVerificationStepPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, updateData } = useOnboarding();
 
-  const [otp, setOtp] = useState<string[]>(["", "", "", ""]);
+  // Populate digits from context if previously entered
+  const [otp, setOtp] = useState<string[]>(() => {
+    if (typeof data.otp === "string" && data.otp.length === 4) {
+      return data.otp.split("");
+    }
+    return ["", "", "", ""];
+  });
+
   const [error, setError] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Mask saved phone number for UI or fallback
+  const phoneDisplay = data.phone
+    ? typeof data.phone === "string" && data.phone.length > 4
+      ? `${data.phone.slice(0, 3)} *** **${data.phone.slice(-2)}`
+      : String(data.phone)
+    : "+1 (415) *** **87";
 
   const handleChange = (index: number, value: string) => {
     const cleanVal = value.replace(/\D/g, "");
@@ -56,6 +72,7 @@ export const OtpVerificationStepPage: React.FC = () => {
     }
 
     setError(null);
+    updateData({ otp: code });
     navigate("/onboarding/step-6");
   };
 
@@ -85,7 +102,7 @@ export const OtpVerificationStepPage: React.FC = () => {
           transition={{ duration: 0.35, delay: 0.1 }}
           className="mt-3 text-sm text-neutral-400"
         >
-          Enter the code sent to +1 (415) *** **87
+          Enter the code sent to {phoneDisplay}
         </motion.p>
 
         <form onSubmit={handleContinue} className="mt-10 flex flex-col items-center">
@@ -149,7 +166,7 @@ export const OtpVerificationStepPage: React.FC = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              // Resend via email
+              // Resend via email handler
             }}
             className="mt-8 text-sm font-semibold text-neutral-300 underline underline-offset-4 transition-colors hover:text-white"
           >
@@ -174,3 +191,5 @@ export const OtpVerificationStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default OtpVerificationStepPage;

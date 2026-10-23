@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const UsernameStepPage: React.FC = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const { data, updateData } = useOnboarding();
+  const [username, setUsername] = useState(data.username || "");
   const [error, setError] = useState<string | null>(null);
 
   const handleContinue = (e?: React.FormEvent) => {
@@ -22,6 +24,7 @@ export const UsernameStepPage: React.FC = () => {
     }
 
     setError(null);
+    updateData({ username: trimmed });
     navigate("/onboarding/step-2");
   };
 
@@ -127,3 +130,5 @@ export const UsernameStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default UsernameStepPage;

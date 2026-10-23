@@ -1,5 +1,5 @@
 import React from 'react';
-import { PartyEvent } from '../types';
+import { PartyEvent } from '../../create/types';
 
 interface EventCardProps {
   event: PartyEvent;

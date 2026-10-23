@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
-type RoleOption = "host" | "find" | "both";
+type RoleOption = "ORGANIZER" | "ATTENDEE";
 
 interface RoleItem {
   id: RoleOption;
@@ -11,18 +12,22 @@ interface RoleItem {
 }
 
 const ROLES: RoleItem[] = [
-  { id: "host", label: "I want to host parties" },
-  { id: "find", label: "I want to find parties" },
-  { id: "both", label: "I want to do both" },
+  { id: "ORGANIZER", label: "I want to host parties" },
+  { id: "ATTENDEE", label: "I want to find parties" },
 ];
 
 export const RoleSelectionStepPage: React.FC = () => {
   const navigate = useNavigate();
-  // Default selected to "find" matching the mockup design
-  const [selectedRole, setSelectedRole] = useState<RoleOption>("find");
+  const { data, updateData } = useOnboarding();
+
+  // Initialize from context if available, otherwise default to "ATTENDEE"
+  const [selectedRole, setSelectedRole] = useState<RoleOption>(
+    data.role === "ORGANIZER" ? "ORGANIZER" : "ATTENDEE"
+  );
 
   const handleContinue = () => {
     if (!selectedRole) return;
+    updateData({ role: selectedRole });
     navigate("/onboarding/step-7");
   };
 
@@ -117,3 +122,5 @@ export const RoleSelectionStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default RoleSelectionStepPage;

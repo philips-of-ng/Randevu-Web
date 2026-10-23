@@ -1,9 +1,32 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import confetti from "canvas-confetti";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const OnboardingSuccessPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, resetData } = useOnboarding();
+
+  useEffect(() => {
+    // Fire real full-screen particle confetti burst on mount
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#38bdf8", "#fbbf24", "#f43f5e", "#4ade80", "#ec4899"],
+      });
+    } catch {
+      // Graceful fallback if canvas-confetti fails
+    }
+  }, []);
+
+  const handleDone = () => {
+    // Clean up temporary draft state from session storage
+    resetData();
+    navigate("/");
+  };
 
   return (
     <motion.div
@@ -105,7 +128,6 @@ export const OnboardingSuccessPage: React.FC = () => {
               strokeLinejoin="round"
               className="h-20 w-20 drop-shadow-[0_0_16px_rgba(74,222,128,0.7)]"
             >
-              {/* Reversed points: draws short side (4,12) -> corner (9,17) -> long stem (20,6) */}
               <motion.polyline
                 points="4 12 9 17 20 6"
                 initial={{ pathLength: 0, opacity: 0 }}
@@ -127,7 +149,7 @@ export const OnboardingSuccessPage: React.FC = () => {
           transition={{ duration: 0.35, delay: 0.4 }}
           className="mt-8 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
         >
-          All done!
+          {data.username ? `All done, ${data.username}!` : "All done!"}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -150,7 +172,7 @@ export const OnboardingSuccessPage: React.FC = () => {
           type="button"
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => navigate("/")}
+          onClick={handleDone}
           className="w-full rounded-full bg-white py-4 text-center text-base font-bold text-black shadow-lg transition-colors hover:bg-neutral-200"
         >
           Done
@@ -159,3 +181,5 @@ export const OnboardingSuccessPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default OnboardingSuccessPage;

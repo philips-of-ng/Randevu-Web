@@ -2,15 +2,27 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const BirthdayStepPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, updateData } = useOnboarding();
 
-  const [day, setDay] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  // Parse existing birthday string (YYYY-MM-DD) if available in context
+  const initialDate = (() => {
+    if (typeof data.birthday === "string" && data.birthday.includes("-")) {
+      const [y, m, d] = data.birthday.split("-");
+      return { day: d || "", month: m || "", year: y || "" };
+    }
+    return { day: "", month: "", year: "" };
+  })();
+
+  const [day, setDay] = useState(initialDate.day);
+  const [month, setMonth] = useState(initialDate.month);
+  const [year, setYear] = useState(initialDate.year);
   const [error, setError] = useState<string | null>(null);
 
+  const dayRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
@@ -55,7 +67,24 @@ export const BirthdayStepPage: React.FC = () => {
       return;
     }
 
+    // Days in month validation (accounts for leap years)
+    const daysInMonth = new Date(y, m, 0).getDate();
+    if (d > daysInMonth) {
+      setError("Please enter a valid day for the chosen month");
+      return;
+    }
+
     setError(null);
+
+    // Save formatted date (YYYY-MM-DD) and component values to context
+    const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    updateData({
+      birthday: formattedDate,
+      birthDay: day,
+      birthMonth: month,
+      birthYear: year,
+    });
+
     navigate("/onboarding/step-4");
   };
 
@@ -102,13 +131,14 @@ export const BirthdayStepPage: React.FC = () => {
           >
             {/* Day Input */}
             <input
+              ref={dayRef}
               type="text"
               inputMode="numeric"
-              placeholder="01"
+              placeholder="DD"
               value={day}
               onChange={handleDayChange}
               autoFocus
-              className="w-8 bg-transparent text-center text-white placeholder-neutral-500 outline-none"
+              className="w-10 bg-transparent text-center text-white placeholder-neutral-500 outline-none"
             />
             <span className="text-neutral-500">/</span>
 
@@ -117,15 +147,15 @@ export const BirthdayStepPage: React.FC = () => {
               ref={monthRef}
               type="text"
               inputMode="numeric"
-              placeholder="01"
+              placeholder="MM"
               value={month}
               onChange={handleMonthChange}
               onKeyDown={(e) => {
                 if (e.key === "Backspace" && !month) {
-                  // Focus previous field if current is empty
+                  dayRef.current?.focus();
                 }
               }}
-              className="w-12 bg-transparent text-center text-white placeholder-neutral-500 outline-none"
+              className="w-10 bg-transparent text-center text-white placeholder-neutral-500 outline-none"
             />
             <span className="text-neutral-500">/</span>
 
@@ -134,9 +164,14 @@ export const BirthdayStepPage: React.FC = () => {
               ref={yearRef}
               type="text"
               inputMode="numeric"
-              placeholder="2000"
+              placeholder="YYYY"
               value={year}
               onChange={handleYearChange}
+              onKeyDown={(e) => {
+                if (e.key === "Backspace" && !year) {
+                  monthRef.current?.focus();
+                }
+              }}
               className="w-16 bg-transparent text-center text-white placeholder-neutral-500 outline-none"
             />
           </motion.div>
@@ -174,3 +209,5 @@ export const BirthdayStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default BirthdayStepPage;

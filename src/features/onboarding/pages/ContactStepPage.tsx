@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 interface CountryData {
   name: string;
@@ -9,7 +10,6 @@ interface CountryData {
   dial: string;
 }
 
-// Helper to convert 2-letter ISO country codes (e.g., "NG", "US") to emoji flags
 const getCountryFlag = (countryCode: string) => {
   return countryCode
     .toUpperCase()
@@ -18,7 +18,6 @@ const getCountryFlag = (countryCode: string) => {
     );
 };
 
-// Comprehensive global country telephone calling code dataset
 const ALL_COUNTRIES: CountryData[] = [
   { name: "United States", code: "US", dial: "+1" },
   { name: "Nigeria", code: "NG", dial: "+234" },
@@ -99,10 +98,20 @@ const ALL_COUNTRIES: CountryData[] = [
 
 export const ContactStepPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, updateData } = useOnboarding();
 
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState<CountryData>(ALL_COUNTRIES[0]);
+  const [email, setEmail] = useState((data.email as string) || "");
+
+  // Parse existing phone if previously saved with country code or dial prefix
+  const [selectedCountry, setSelectedCountry] = useState<CountryData>(() => {
+    if (data.countryCode) {
+      const match = ALL_COUNTRIES.find((c) => c.code === data.countryCode);
+      if (match) return match;
+    }
+    return ALL_COUNTRIES[0];
+  });
+
+  const [phoneNumber, setPhoneNumber] = useState((data.phoneNumber as string) || "");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +150,17 @@ export const ContactStepPage: React.FC = () => {
     }
 
     setError(null);
+
+    // Persist full international phone and separate fields to onboarding context
+    const fullPhone = `${selectedCountry.dial}${trimmedPhone.replace(/^0+/, "")}`;
+    updateData({
+      email: trimmedEmail,
+      phoneNumber: trimmedPhone,
+      phone: fullPhone,
+      countryCode: selectedCountry.code,
+      countryDial: selectedCountry.dial,
+    });
+
     navigate("/onboarding/step-5");
   };
 
@@ -353,3 +373,5 @@ export const ContactStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default ContactStepPage;

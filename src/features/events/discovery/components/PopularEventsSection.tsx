@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import EventCard from "./EventCard";
 import EventFilters from "./EventFilters";
-import { PartyEvent } from "../types";
+import { PartyEvent } from "../../create/types";
 
 // Mock event list mirroring the screenshot
 const MOCK_EVENTS: PartyEvent[] = [

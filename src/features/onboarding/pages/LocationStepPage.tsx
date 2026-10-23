@@ -2,23 +2,29 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const LocationStepPage: React.FC = () => {
   const navigate = useNavigate();
-  const [locationEnabled, setLocationEnabled] = useState(false);
+  const { data, updateData, submitOnboarding, isSubmitting, error } = useOnboarding();
+  const [locationEnabled, setLocationEnabled] = useState(Boolean(data.location));
   const [loading, setLoading] = useState(false);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationEnabled(true);
+      updateData({ location: "enabled_default" });
       return;
     }
 
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      () => {
+      (position) => {
         setLoading(false);
         setLocationEnabled(true);
+        updateData({
+          location: `${position.coords.latitude},${position.coords.longitude}`,
+        });
       },
       () => {
         setLoading(false);
@@ -27,8 +33,13 @@ export const LocationStepPage: React.FC = () => {
     );
   };
 
-  const handleFinish = () => {
-    navigate("/onboarding/success");
+  const handleFinish = async () => {
+    try {
+      await submitOnboarding();
+      navigate("/onboarding/success");
+    } catch {
+      // Error message is exposed through useOnboarding()
+    }
   };
 
   return (
@@ -63,7 +74,7 @@ export const LocationStepPage: React.FC = () => {
           <motion.button
             type="button"
             onClick={requestLocation}
-            disabled={loading}
+            disabled={loading || isSubmitting}
             whileTap={{ scale: 0.98 }}
             animate={{
               borderColor: locationEnabled ? "rgba(16, 185, 129, 0.8)" : "rgba(38, 38, 38, 1)",
@@ -127,13 +138,29 @@ export const LocationStepPage: React.FC = () => {
           {/* Maybe Later Link */}
           <motion.button
             type="button"
+            disabled={isSubmitting}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleFinish}
-            className="text-sm font-semibold text-neutral-300 underline underline-offset-4 transition-colors hover:text-white"
+            className="text-sm font-semibold text-neutral-300 underline underline-offset-4 transition-colors hover:text-white disabled:opacity-50"
           >
             Maybe later
           </motion.button>
+
+          {/* Submission Error Display */}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -6, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -6, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-center text-xs font-medium text-rose-500"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {/* Golden Subtitle Notice */}
           <motion.p
@@ -157,9 +184,11 @@ export const LocationStepPage: React.FC = () => {
         <OnboardingContinueButton
           type="button"
           onClick={handleFinish}
-          disabled={false}
+          disabled={isSubmitting}
         />
       </motion.footer>
     </motion.div>
   );
 };
+
+export default LocationStepPage;

@@ -2,21 +2,40 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { OnboardingContinueButton } from "../components/ContinueBtn";
+import { useOnboarding } from "@/context/OnboardingContext";
 
 export const PhotoStepPage: React.FC = () => {
   const navigate = useNavigate();
+  const { data, updateData } = useOnboarding();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Initialize preview from existing context state if present
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    data.avatarUrl || null
+  );
 
   const handleNext = () => {
+    // If a photo was selected, ensure it's saved in context before moving on
+    if (photoPreview) {
+      updateData({ avatarUrl: photoPreview });
+    }
+    navigate("/onboarding/step-3");
+  };
+
+  const handleSkip = () => {
     navigate("/onboarding/step-3");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setPhotoPreview(previewUrl);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setPhotoPreview(base64String);
+        updateData({ avatarUrl: base64String });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -118,7 +137,7 @@ export const PhotoStepPage: React.FC = () => {
           {/* Skip Action */}
           <motion.button
             type="button"
-            onClick={handleNext}
+            onClick={handleSkip}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.25 }}
@@ -143,3 +162,5 @@ export const PhotoStepPage: React.FC = () => {
     </motion.div>
   );
 };
+
+export default PhotoStepPage;
