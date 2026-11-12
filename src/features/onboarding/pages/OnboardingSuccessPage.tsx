@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useAuth } from "@/context/AuthContext";
 
 export const OnboardingSuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const { data, resetData } = useOnboarding();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Fire real full-screen particle confetti burst on mount
     try {
       confetti({
         particleCount: 80,
@@ -18,14 +19,18 @@ export const OnboardingSuccessPage: React.FC = () => {
         colors: ["#38bdf8", "#fbbf24", "#f43f5e", "#4ade80", "#ec4899"],
       });
     } catch {
-      // Graceful fallback if canvas-confetti fails
+      // Graceful fallback
     }
   }, []);
 
   const handleDone = () => {
-    // Clean up temporary draft state from session storage
+    const finalRole = user?.role || data.role;
     resetData();
-    navigate("/");
+    if (finalRole === "ORGANIZER") {
+      navigate("/organizer/dashboard");
+    } else {
+      navigate("/");
+    }
   };
 
   return (
@@ -39,7 +44,6 @@ export const OnboardingSuccessPage: React.FC = () => {
       {/* Celebration Graphic */}
       <section className="flex flex-col items-center justify-center pt-10 text-center">
         <div className="relative flex h-64 w-64 items-center justify-center sm:h-72 sm:w-72">
-          {/* Confetti & Streamers Burst Layer (Scale & Spin Up) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.3, rotate: -25 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -57,14 +61,12 @@ export const OnboardingSuccessPage: React.FC = () => {
               xmlns="http://www.w3.org/2000/svg"
               className="h-full w-full"
             >
-              {/* Confetti particles */}
               <circle cx="100" cy="20" r="2.5" fill="#38bdf8" />
               <circle cx="175" cy="85" r="2.5" fill="#fbbf24" />
               <circle cx="165" cy="145" r="3" fill="#f43f5e" />
               <circle cx="35" cy="150" r="2.5" fill="#4ade80" />
               <circle cx="25" cy="80" r="2.5" fill="#ec4899" />
 
-              {/* Spark lines */}
               <path d="M100 45 L100 28" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M140 60 L158 42" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M155 100 L175 100" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
@@ -74,7 +76,6 @@ export const OnboardingSuccessPage: React.FC = () => {
               <path d="M45 100 L25 100" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" />
               <path d="M60 60 L42 42" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
 
-              {/* Ribbons */}
               <path
                 d="M105 18 C112 32, 98 42, 110 58"
                 stroke="#38bdf8"
@@ -106,7 +107,6 @@ export const OnboardingSuccessPage: React.FC = () => {
             </svg>
           </motion.div>
 
-          {/* Center Checkmark Disc */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -142,14 +142,15 @@ export const OnboardingSuccessPage: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Headings */}
         <motion.h1
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.4 }}
           className="mt-8 text-3xl font-extrabold tracking-tight text-white sm:text-4xl"
         >
-          {data.username ? `All done, ${data.username}!` : "All done!"}
+          {user?.username || data.username
+            ? `All done, ${user?.username || data.username}!`
+            : "All done!"}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -161,7 +162,6 @@ export const OnboardingSuccessPage: React.FC = () => {
         </motion.p>
       </section>
 
-      {/* Done Button */}
       <motion.footer
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

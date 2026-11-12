@@ -18,6 +18,8 @@ import { OtpVerificationStepPage } from "./features/onboarding/pages/OtpVerifica
 import { RoleSelectionStepPage } from "./features/onboarding/pages/RoleSelectionStepPage";
 import { LocationStepPage } from "./features/onboarding/pages/LocationStepPage";
 import { OnboardingSuccessPage } from "./features/onboarding/pages/OnboardingSuccessPage";
+import PasswordStepPage from "./features/onboarding/pages/PasswordStepPage";
+import LoginPage from "./features/auth/pages/LoginPage";
 
 // Organizer Portal imports
 import OrganizerLayout from "./features/organizer/layout/OrganizerLayout";
@@ -25,6 +27,14 @@ import DashboardPage from "./features/organizer/dashboard/pages/DashboardPage";
 import CreateEventPage from "./features/organizer/events/create/pages/CreateEventPage";
 import ManageEventsPage from "./features/organizer/events/pages/ManageEventsPage";
 import EventDetailsPage from "./features/organizer/events/pages/EventDetailsPage";
+// or ManageEventsPage / EventDetailsPage
+
+// Discovery / Attendee Feed import
+import ExploreEventsPage from "./features/discovery/pages/ExploreEventsPage";
+import AttendeeLayout from "./features/discovery/components/AttendeeLayout";
+import YourTicketsPage from "./features/discovery/pages/YourTicketsPage";
+import YourProfilePage from "./features/discovery/pages/YourProfilePage";
+import AttendeeEventDetailPage from "./features/discovery/pages/AttendeeEventDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,8 +51,19 @@ export const App: React.FC = () => {
       <AuthProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
-            {/* Public Landing */}
+            {/* Public Landing & Discovery Feed */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+
+
+            {/* Authenticated Attendee Portal with Navbar & Bottom Tab Bar */}
+            <Route element={<AttendeeLayout />}>
+              <Route path="/events" element={<ExploreEventsPage />} />
+              <Route path="/events/:eventId" element={<AttendeeEventDetailPage />} />
+              <Route path="/tickets" element={<YourTicketsPage />} />
+              <Route path="/profile" element={<YourProfilePage />} />
+            </Route>
+
 
             {/* Multi-step Onboarding Flow */}
             <Route
@@ -59,8 +80,9 @@ export const App: React.FC = () => {
               <Route path="step-3" element={<BirthdayStepPage />} />
               <Route path="step-4" element={<ContactStepPage />} />
               <Route path="step-5" element={<OtpVerificationStepPage />} />
-              <Route path="step-6" element={<RoleSelectionStepPage />} />
-              <Route path="step-7" element={<LocationStepPage />} />
+              <Route path="step-6" element={<PasswordStepPage />} />
+              <Route path="step-7" element={<RoleSelectionStepPage />} />
+              <Route path="step-8" element={<LocationStepPage />} />
               <Route path="success" element={<OnboardingSuccessPage />} />
             </Route>
 
@@ -69,8 +91,8 @@ export const App: React.FC = () => {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="events" element={<ManageEventsPage />} />
-              <Route path="events/:eventId" element={<EventDetailsPage />} />
               <Route path="events/create" element={<CreateEventPage />} />
+              <Route path="events/:eventId" element={<EventDetailsPage />} />
             </Route>
 
             {/* Standalone Event Creation alias / fallback */}

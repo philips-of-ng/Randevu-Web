@@ -28,7 +28,7 @@ export const RoleSelectionStepPage: React.FC = () => {
   const handleContinue = () => {
     if (!selectedRole) return;
     updateData({ role: selectedRole });
-    navigate("/onboarding/step-7");
+    navigate("/onboarding/step-8");
   };
 
   return (

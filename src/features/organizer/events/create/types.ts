@@ -1,4 +1,4 @@
-export type EventTab = "details" | "appearance" | "tickets";
+export type EventTab = "details" | "appearance" | "tickets" | "admin";
 
 export type EventCategory =
   | "Nightlife"
@@ -9,6 +9,13 @@ export type EventCategory =
   | "Travel & outdoor"
   | "Festival"
   | "Other";
+
+export interface CollaboratorItem {
+  id: string;
+  username: string;
+  role: "CO_HOST" | "SCANNER" | "PROMOTER_PARTNER";
+  splitPercentage?: string;
+}
 
 export interface CreateEventFormData {
   // Tab 1: Event Details
@@ -35,4 +42,9 @@ export interface CreateEventFormData {
   orderLimit: string;
   benefits: string[];
   ticketPrice: string;
+
+  // Tab 4: Team & Admin
+  collaborators?: CollaboratorItem[];
+  isPrivate?: boolean;
+  requireApproval?: boolean;
 }

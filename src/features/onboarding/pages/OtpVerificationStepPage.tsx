@@ -6,9 +6,8 @@ import { useOnboarding } from "@/context/OnboardingContext";
 
 export const OtpVerificationStepPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data, updateData } = useOnboarding();
+  const { data, verifyOtp, sendOtp, isSubmitting } = useOnboarding();
 
-  // Populate digits from context if previously entered
   const [otp, setOtp] = useState<string[]>(() => {
     if (typeof data.otp === "string" && data.otp.length === 4) {
       return data.otp.split("");
@@ -17,14 +16,14 @@ export const OtpVerificationStepPage: React.FC = () => {
   });
 
   const [error, setError] = useState<string | null>(null);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Mask saved phone number for UI or fallback
   const phoneDisplay = data.phone
     ? typeof data.phone === "string" && data.phone.length > 4
-      ? `${data.phone.slice(0, 3)} *** **${data.phone.slice(-2)}`
+      ? `${data.phone.slice(0, 4)} *** **${data.phone.slice(-2)}`
       : String(data.phone)
-    : "+1 (415) *** **87";
+    : "+234 *** **87";
 
   const handleChange = (index: number, value: string) => {
     const cleanVal = value.replace(/\D/g, "");
@@ -62,7 +61,7 @@ export const OtpVerificationStepPage: React.FC = () => {
     }
   };
 
-  const handleContinue = (e?: React.FormEvent) => {
+  const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     const code = otp.join("");
@@ -72,8 +71,26 @@ export const OtpVerificationStepPage: React.FC = () => {
     }
 
     setError(null);
-    updateData({ otp: code });
-    navigate("/onboarding/step-6");
+    setResendNotice(null);
+
+    try {
+      await verifyOtp(code);
+      navigate("/onboarding/step-6");
+    } catch (err: any) {
+      setError(err?.message || "Invalid or expired 4-digit code");
+    }
+  };
+
+  const handleResendViaEmail = async () => {
+    if (!data.email || !data.phone) return;
+    setError(null);
+    setResendNotice(null);
+    try {
+      await sendOtp(String(data.email), String(data.phone), "email");
+      setResendNotice(`Code sent to ${data.email}`);
+    } catch (err: any) {
+      setError(err?.message || "Failed to resend code via email");
+    }
   };
 
   const isComplete = otp.every((digit) => digit !== "");
@@ -105,8 +122,21 @@ export const OtpVerificationStepPage: React.FC = () => {
           Enter the code sent to {phoneDisplay}
         </motion.p>
 
+        {/* Dev OTP Helper Pill (Only appears if backend sends devOtp in non-prod) */}
+        {data.devOtp && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setOtp(String(data.devOtp).slice(0, 4).split(""))}
+              className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-xs text-amber-400 hover:bg-amber-500/20 transition-colors"
+            >
+              Dev OTP: {String(data.devOtp)} (click to fill)
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleContinue} className="mt-10 flex flex-col items-center">
-          {/* 4 Circular PIN Slots with staggered spring pop */}
+          {/* 4 Circular PIN Slots */}
           <div className="flex items-center justify-center gap-3 sm:gap-4">
             {otp.map((digit, idx) => {
               const isFilled = Boolean(digit);
@@ -155,20 +185,30 @@ export const OtpVerificationStepPage: React.FC = () => {
                 {error}
               </motion.p>
             )}
+            {resendNotice && !error && (
+              <motion.p
+                initial={{ opacity: 0, y: -6, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -6, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-4 text-center text-xs font-medium text-emerald-400"
+              >
+                {resendNotice}
+              </motion.p>
+            )}
           </AnimatePresence>
 
           {/* Switch Delivery Channel */}
           <motion.button
             type="button"
+            disabled={isSubmitting}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.35, delay: 0.3 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              // Resend via email handler
-            }}
-            className="mt-8 text-sm font-semibold text-neutral-300 underline underline-offset-4 transition-colors hover:text-white"
+            onClick={handleResendViaEmail}
+            className="mt-8 text-sm font-semibold text-neutral-300 underline underline-offset-4 transition-colors hover:text-white disabled:opacity-50"
           >
             Receive code via email instead
           </motion.button>
@@ -186,6 +226,7 @@ export const OtpVerificationStepPage: React.FC = () => {
           type="button"
           onClick={handleContinue}
           disabled={!isComplete}
+          loading={isSubmitting}
         />
       </motion.footer>
     </motion.div>

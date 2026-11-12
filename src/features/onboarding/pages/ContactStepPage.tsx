@@ -98,17 +98,16 @@ const ALL_COUNTRIES: CountryData[] = [
 
 export const ContactStepPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data, updateData } = useOnboarding();
+  const { data, updateData, sendOtp, isSubmitting } = useOnboarding();
 
   const [email, setEmail] = useState((data.email as string) || "");
 
-  // Parse existing phone if previously saved with country code or dial prefix
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(() => {
     if (data.countryCode) {
       const match = ALL_COUNTRIES.find((c) => c.code === data.countryCode);
       if (match) return match;
     }
-    return ALL_COUNTRIES[0];
+    return ALL_COUNTRIES[1]; // Default to Nigeria (+234) or US
   });
 
   const [phoneNumber, setPhoneNumber] = useState((data.phoneNumber as string) || "");
@@ -127,7 +126,7 @@ export const ContactStepPage: React.FC = () => {
     );
   }, [searchQuery]);
 
-  const handleContinue = (e?: React.FormEvent) => {
+  const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     const trimmedEmail = email.trim();
@@ -151,8 +150,10 @@ export const ContactStepPage: React.FC = () => {
 
     setError(null);
 
-    // Persist full international phone and separate fields to onboarding context
-    const fullPhone = `${selectedCountry.dial}${trimmedPhone.replace(/^0+/, "")}`;
+    const cleanDial = selectedCountry.dial.replace(/[^\d+]/g, "");
+    const cleanLocal = trimmedPhone.replace(/\D/g, "").replace(/^0+/, "");
+    const fullPhone = `${cleanDial}${cleanLocal}`;
+
     updateData({
       email: trimmedEmail,
       phoneNumber: trimmedPhone,
@@ -161,7 +162,12 @@ export const ContactStepPage: React.FC = () => {
       countryDial: selectedCountry.dial,
     });
 
-    navigate("/onboarding/step-5");
+    try {
+      await sendOtp(trimmedEmail, fullPhone, "sms");
+      navigate("/onboarding/step-5");
+    } catch (err: any) {
+      setError(err?.message || "Could not send verification code. Please try again.");
+    }
   };
 
   const isComplete = email.trim().length > 0 && phoneNumber.trim().length > 4;
@@ -239,7 +245,6 @@ export const ContactStepPage: React.FC = () => {
             transition={{ duration: 0.35, delay: 0.2 }}
             className="relative flex items-center rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 transition-all focus-within:border-neutral-500 focus-within:ring-1 focus-within:ring-neutral-500"
           >
-            {/* Country Flag & Dial Trigger */}
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
@@ -257,10 +262,8 @@ export const ContactStepPage: React.FC = () => {
               </span>
             </motion.button>
 
-            {/* Separator */}
             <div className="h-5 w-[1px] bg-neutral-700" />
 
-            {/* Phone Input */}
             <input
               id="phone"
               type="tel"
@@ -269,12 +272,12 @@ export const ContactStepPage: React.FC = () => {
                 setPhoneNumber(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="(415) 555 - 0187"
+              placeholder="801 234 5678"
               autoComplete="tel"
               className="w-full bg-transparent py-2 pl-3 pr-2 text-sm font-medium text-white placeholder-neutral-500 outline-none"
             />
 
-            {/* Animated Country Picker Dropdown Modal */}
+            {/* Country Picker Dropdown */}
             <AnimatePresence>
               {showCountryPicker && (
                 <>
@@ -289,7 +292,6 @@ export const ContactStepPage: React.FC = () => {
                     transition={{ duration: 0.18 }}
                     className="absolute left-0 top-full z-50 mt-2 max-h-72 w-72 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-2 shadow-2xl backdrop-blur-md"
                   >
-                    {/* Live Search Filter */}
                     <div className="mb-2 px-1">
                       <input
                         type="text"
@@ -301,7 +303,6 @@ export const ContactStepPage: React.FC = () => {
                       />
                     </div>
 
-                    {/* Filtered Country List */}
                     <div className="max-h-52 overflow-y-auto pr-1">
                       {filteredCountries.map((country) => (
                         <button
@@ -368,6 +369,7 @@ export const ContactStepPage: React.FC = () => {
           type="button"
           onClick={handleContinue}
           disabled={!isComplete}
+          loading={isSubmitting}
         />
       </motion.footer>
     </motion.div>

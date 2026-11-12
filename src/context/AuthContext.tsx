@@ -11,15 +11,29 @@ export interface RegisterInput {
   email: string;
   password?: string;
   fullName?: string;
+  phoneNumber?: string;
+  role?: "ATTENDEE" | "ORGANIZER";
   [key: string]: unknown;
+}
+
+export interface OrganizerBalance {
+  availableBalance: number | string;
+  pendingBalance: number | string;
+  currency: string;
 }
 
 export interface User {
   id: string;
   email: string;
+  username?: string;
   fullName: string;
-  phoneNumber?: string;
+  avatarUrl?: string | null;
+  birthday?: string | null;
+  phoneNumber?: string | null;
+  countryCode?: string | null;
+  location?: string | null;
   role: "ATTENDEE" | "ORGANIZER" | "SCANNER" | "ADMIN" | string;
+  organizerBalance?: OrganizerBalance | null;
   createdAt?: string;
 }
 
@@ -27,8 +41,9 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (input: LoginInput) => Promise<User>;
+  register: (input: RegisterInput) => Promise<User>;
+  setAuthSession: (token: string, user: User) => void;
   logout: () => void;
   refetchUser: () => Promise<void>;
 }
@@ -41,17 +56,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchCurrentUser = async () => {
+    console.info("[AuthContext] Step: fetchCurrentUser initiated. Checking stored token...");
     try {
       const storedToken = localStorage.getItem("randevu_token");
       if (!storedToken) {
+        console.warn("[AuthContext] fetchCurrentUser: No token found in localStorage.");
         setUser(null);
         setLoading(false);
         return;
       }
-      const response = await apiClient.get<{ user: User }>("/auth/me");
-      setUser(response.data.user);
-    } catch {
+
+      console.info("[AuthContext] fetchCurrentUser: Calling GET /auth/me with token...");
+      const response = await apiClient.get("/auth/me");
+      const raw = response.data;
+      console.debug("[AuthContext] fetchCurrentUser: Response received:", raw);
+
+      const resolvedUser: User = raw?.user || raw?.data?.user || raw?.data;
+      setUser(resolvedUser || null);
+      console.info("[AuthContext] fetchCurrentUser: User session successfully hydrated:", resolvedUser?.email);
+    } catch (err) {
+      console.error("[AuthContext] fetchCurrentUser error: Failed to fetch current user, clearing session.", err);
       localStorage.removeItem("randevu_token");
+      setToken(null);
       setUser(null);
     } finally {
       setLoading(false);
@@ -59,26 +85,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.info("[AuthContext] Effect: Token state changed, running fetchCurrentUser(). Token exists:", Boolean(token));
     fetchCurrentUser();
   }, [token]);
 
-  const login = async (input: LoginInput) => {
-    const response = await apiClient.post<{ token: string; user: User }>("/auth/login", input);
-    const { token: receivedToken, user: receivedUser } = response.data;
-    localStorage.setItem("randevu_token", receivedToken);
-    setToken(receivedToken);
-    setUser(receivedUser);
+  const setAuthSession = (newToken: string, newUser: User) => {
+    console.info("[AuthContext] Step: setAuthSession executing for user:", newUser?.email);
+    localStorage.setItem("randevu_token", newToken);
+    setToken(newToken);
+    setUser(newUser);
+    console.info("[AuthContext] setAuthSession: Session state successfully stored and updated.");
   };
 
-  const register = async (input: RegisterInput) => {
-    const response = await apiClient.post<{ token: string; user: User }>("/auth/register", input);
-    const { token: receivedToken, user: receivedUser } = response.data;
-    localStorage.setItem("randevu_token", receivedToken);
-    setToken(receivedToken);
-    setUser(receivedUser);
+  const login = async (input: LoginInput): Promise<User> => {
+    console.info("[AuthContext] Step: login called with raw plain payload:", input);
+
+    try {
+      console.info("[AuthContext] login: Dispatching POST /auth/login request...");
+      const response = await apiClient.post("/auth/login", input);
+      const raw = response.data;
+      console.debug("[AuthContext] login: Response payload received:", raw);
+
+      const receivedToken: string = raw?.token || raw?.data?.token;
+      const receivedUser: User = raw?.user || raw?.data?.user;
+
+      if (!receivedToken) {
+        console.warn("[AuthContext] login warning: Response succeeded but token was missing!");
+      }
+
+      setAuthSession(receivedToken, receivedUser);
+      console.info("[AuthContext] Step: login completed successfully for user:", receivedUser?.email);
+      return receivedUser;
+    } catch (err) {
+      console.error("[AuthContext] login error: Failed during login request.", err);
+      throw err;
+    }
+  };
+
+  const register = async (input: RegisterInput): Promise<User> => {
+    console.info("[AuthContext] Step: register called with raw plain payload:", input);
+
+    try {
+      console.info("[AuthContext] register: Dispatching POST /auth/register request...");
+      const response = await apiClient.post("/auth/register", input);
+      const raw = response.data;
+      console.debug("[AuthContext] register: Response payload received:", raw);
+
+      const receivedToken: string = raw?.token || raw?.data?.token;
+      const receivedUser: User = raw?.user || raw?.data?.user;
+
+      setAuthSession(receivedToken, receivedUser);
+      console.info("[AuthContext] Step: register completed successfully for user:", receivedUser?.email);
+      return receivedUser;
+    } catch (err) {
+      console.error("[AuthContext] register error: Failed during registration request.", err);
+      throw err;
+    }
   };
 
   const logout = () => {
+    console.info("[AuthContext] Step: logout triggered. Clearing storage and redirecting...");
     localStorage.removeItem("randevu_token");
     setToken(null);
     setUser(null);
@@ -93,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         login,
         register,
+        setAuthSession,
         logout,
         refetchUser: fetchCurrentUser,
       }}

@@ -8,9 +8,10 @@ interface Props {
 }
 
 const TABS: { id: EventTab; label: string }[] = [
-  { id: "details", label: "Event details" },
-  { id: "appearance", label: "Appearance" },
-  { id: "tickets", label: "Ticket info" },
+  { id: "details", label: "Details" },
+  { id: "appearance", label: "Flyer" },
+  { id: "tickets", label: "Tickets" },
+  { id: "admin", label: "Team & Admin" },
 ];
 
 export const EventTabsHeader: React.FC<Props> = ({ currentTab, onTabChange }) => {

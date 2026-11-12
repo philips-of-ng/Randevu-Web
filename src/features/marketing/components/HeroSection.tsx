@@ -5,6 +5,7 @@ import GlowRedButton from "@/components/ui/GlowRedButton";
 import DarkOutlineButton from "@/components/ui/DarkOutlineButton";
 import HeroCard from "./HeroCard";
 import images from "@/assets/images";
+import { useNavigate } from "react-router-dom";
 
 const heroContainerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -54,6 +55,8 @@ const cardItemVariants: Variants = {
 };
 
 export const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <SpotlightGridBackground className="min-h-screen px-4 pt-10 pb-16 sm:pt-16 sm:pb-24 text-white">
       <motion.div
@@ -94,6 +97,7 @@ export const HeroSection: React.FC = () => {
             className="w-full xs:w-auto"
           >
             <GlowRedButton
+              onClick={() => navigate("/login")}
               label="Host an Event"
               className="w-full xs:w-auto px-6 py-2.5 text-sm"
             />
@@ -105,6 +109,7 @@ export const HeroSection: React.FC = () => {
             className="w-full xs:w-auto"
           >
             <DarkOutlineButton
+            onClick={() => navigate('/login')}
               label="Find Events"
               className="w-full xs:w-auto px-6 py-2.5 text-sm justify-center whitespace-nowrap"
               icon={

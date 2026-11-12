@@ -20,10 +20,23 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const data = error.response?.data;
+
+    // Extract field-level validation error if present
+    if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+      const firstErr = data.errors[0];
+      const msg = firstErr.path
+        ? `${firstErr.path}: ${firstErr.message}`
+        : firstErr.message;
+      return Promise.reject(new Error(msg));
+    }
+
     const message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
+      data?.message ||
+      data?.error ||
+      error.message ||
       "A network or server error occurred.";
+
     return Promise.reject(new Error(message));
   }
 );
